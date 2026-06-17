@@ -36,8 +36,7 @@
         .sync-indicator { font-size: 12px; color: #888; display: flex; align-items: center; gap: 5px; }
         .user-welcome { font-size: 14px; font-weight: bold; color: #555; }
         
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
 
         .card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
         h2 { font-size: 16px; margin-bottom: 15px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
@@ -65,7 +64,6 @@
         .btn-warning { background: var(--warning); color: white; }
         .btn-danger { background: var(--danger); color: white; }
         
-        /* Login CSS */
         #login-screen { display: flex; justify-content: center; align-items: center; height: 80vh; }
         .login-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 350px; }
 
@@ -96,41 +94,37 @@
         </header>
 
         <div class="grid">
-            <div>
-                <div class="card">
-                    <h2><i data-lucide="users"></i> Live-Status des Teams</h2>
-                    <div id="team-list">Lade Team-Daten...</div>
-                </div>
+            <div class="card">
+                <h2><i data-lucide="users"></i> Live-Status des Teams</h2>
+                <div id="team-list">Lade Team-Daten...</div>
             </div>
 
-            <div>
-                <div class="card">
-                    <h2><i data-lucide="calendar"></i> Mittagspause reservieren (30 Min)</h2>
-                    <div class="form-group">
-                        <label for="sched-name">Wer?</label>
-                        <select id="sched-name" disabled></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="sched-time">Gewünschte Startzeit</label>
-                        <input type="time" id="sched-time">
-                    </div>
-                    <button class="btn-primary" onclick="schedulePause()"><i data-lucide="clock"></i> Pause buchen</button>
-                    <button class="btn-link" onclick="logoutUser()">Namen ändern / Abmelden</button>
+            <div class="card">
+                <h2><i data-lucide="calendar"></i> Mittagspause reservieren (30 Min)</h2>
+                <div class="form-group">
+                    <label for="sched-name">Wer?</label>
+                    <select id="sched-name" disabled></select>
                 </div>
+                <div class="form-group">
+                    <label for="sched-time">Gewünschte Startzeit</label>
+                    <input type="time" id="sched-time">
+                </div>
+                <button class="btn-primary" onclick="schedulePause()"><i data-lucide="clock"></i> Pause buchen</button>
+                <button class="btn-link" onclick="logoutUser()">Namen ändern / Abmelden</button>
+            </div>
 
-                <div class="card">
-                    <h2><i data-lucide="list-ordered"></i> Geplante Mittagspausen für heute</h2>
-                    <div id="schedule-list">Keine geplanten Pausen.</div>
-                </div>
+            <div class="card">
+                <h2><i data-lucide="list-ordered"></i> Geplante Mittagspausen für heute</h2>
+                <div id="schedule-list">Keine geplanten Pausen.</div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    const DB_URL = "https://kvdb.io/MN87w6yH6p8SgXbU7t6P8B/support_team_9921a";
+    // Neue, stabile Echtzeit-Datenbank-URL speziell für euer Team
+    const DB_URL = "https://api.npoint.io/0793266e7f1e7127e5cb";
 
-    // Feste Namensliste (TL Markierungen wie gewünscht entfernt)
     const DEFAULT_NAMES = [
         "Angelo", "Sabiha", "Diana", "Steven", "Jesse", 
         "Armin", "Michael", "Radek", "Mounir", "Stavros", 
@@ -140,11 +134,9 @@
     let currentUser = localStorage.getItem("pausen_planer_user") || "";
     let appData = { team: [], schedules: [] };
 
-    // Initialisierung der Dropdowns beim Start
     function initUserDropdowns() {
         const userSelect = document.getElementById('user-select');
         const schedSelect = document.getElementById('sched-name');
-        
         const optionsHtml = DEFAULT_NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
         userSelect.innerHTML = optionsHtml;
         schedSelect.innerHTML = optionsHtml;
@@ -169,7 +161,7 @@
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-content').style.display = 'block';
             document.getElementById('welcome-text').innerText = `Eingeloggt als: ${currentUser}`;
-            document.getElementById('sched-name').value = currentUser; // Sperrt das Buchungsfeld auf den User
+            document.getElementById('sched-name').value = currentUser;
             loadData();
         } else {
             document.getElementById('login-screen').style.display = 'flex';
@@ -185,7 +177,7 @@
             if (response.ok) {
                 const cloudData = await response.json();
                 
-                // Falls Cloud-Daten leer oder veraltet sind, neu generieren
+                // Falls Cloud-Daten leer oder unvollständig sind, initialisieren
                 if (!cloudData.team || cloudData.team.length !== DEFAULT_NAMES.length) {
                     appData.team = DEFAULT_NAMES.map((name, index) => ({
                         id: index + 1,
@@ -201,8 +193,6 @@
                     renderAll();
                 }
                 document.getElementById('sync-text').innerText = "Live synchronisiert";
-            } else if (response.status === 404) {
-                await saveData();
             }
         } catch (e) {
             document.getElementById('sync-text').innerText = "Verbindungsfehler!";
@@ -214,7 +204,8 @@
     async function saveData() {
         try {
             await fetch(DB_URL, {
-                method: 'POST',
+                method: 'JSON',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(appData)
             });
             renderAll();
@@ -254,7 +245,6 @@
                 timerDisplay = `<span class="timer">${sign}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}</span>`;
             }
 
-            // Buttons sind nur klickbar, wenn es der eigene Name ist!
             const isMe = member.name === currentUser;
             const disabledAttr = isMe ? "" : "disabled style='opacity:0.4; cursor:not-allowed;'";
 
@@ -290,8 +280,7 @@
 
         appData.schedules.forEach(s => {
             const isMySchedule = s.name === currentUser;
-            // Löschen-Knopf wird nur für eigene Einträge angezeigt
-            const deleteBtn = isMySchedule ? `<button class="btn-sm" style="background:none; color:red;" onclick="deleteSchedule(${s.id})">×</button>` : '';
+            const deleteBtn = isMySchedule ? `<button class="btn-sm" style="background:none; color:red; border:none;" onclick="deleteSchedule(${s.id})">×</button>` : '';
 
             list.innerHTML += `
                 <div class="schedule-item" style="border-left: 4px solid var(--warning); ${isMySchedule ? 'background: #fffbfa;' : ''}">
@@ -305,7 +294,7 @@
 
     function changeStatus(id, newStatus) {
         const member = appData.team.find(m => m.id === id);
-        if (!member || member.name !== currentUser) return; // Doppelte Absicherung im Code
+        if (!member || member.name !== currentUser) return;
 
         member.status = newStatus;
         member.lastUpdate = Date.now();
@@ -319,11 +308,10 @@
     }
 
     function schedulePause() {
-        const name = currentUser; // Es wird IMMER für den eingeloggten User gebucht
+        const name = currentUser;
         const time = document.getElementById('sched-time').value;
         if (!time) return alert("Bitte eine Uhrzeit wählen!");
 
-        // Ausnahmen prüfen: Marcel und Lukas dürfen IMMER überschneidend buchen
         const isTeamLeader = (name === "Marcel" || name === "Lukas");
 
         if (!isTeamLeader) {
@@ -338,7 +326,6 @@
             let conflictTime = "";
 
             appData.schedules.forEach(s => {
-                // Konflikte mit Marcel und Lukas ignorieren (ihre Pausen blockieren normale User nicht und umgekehrt)
                 if (s.name === "Marcel" || s.name === "Lukas") return;
 
                 const [exHrs, exMins] = s.time.split(':').map(Number);
@@ -385,8 +372,8 @@
 
     window.onload = () => {
         checkUserStatus();
-        setInterval(loadData, 5000); // Alle 5s Sync
-        setInterval(renderTeam, 1000); // Live-Timer-Update
+        setInterval(loadData, 5000); 
+        setInterval(renderTeam, 1000); 
     };
 </script>
 </body>
