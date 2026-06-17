@@ -3,103 +3,321 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pausen-Planer</title>
+    <title>Support Team Pausen-Planer LIVE</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { --primary: #2563eb; --success: #16a34a; --warning: #ea580c; --danger: #dc2626; --bg: #f4f6f9; }
-        body { font-family: sans-serif; background: var(--bg); margin: 0; }
-        #login-screen { display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
-        .login-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 300px; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        #app-content { display: none; padding: 20px; max-width: 800px; margin: 0 auto; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .schedule-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8fafc; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid var(--warning); }
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --primary: #2563eb;
+            --success: #16a34a;
+            --warning: #ea580c;
+            --danger: #dc2626;
+            --border: #e5e7eb;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 15px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        h1 { font-size: 20px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .sync-indicator { font-size: 12px; color: #888; display: flex; align-items: center; gap: 5px; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { font-size: 16px; margin-bottom: 15px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+
+        button { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--primary); color: white; }
+        
+        .status-badge { padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .status-av { background: #dcfce7; color: var(--success); }
+        .status-mid { background: #ffedd5; color: var(--warning); }
+        .status-scr { background: #fee2e2; color: var(--danger); }
+
+        .team-member { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); }
+        .member-info { display: flex; flex-direction: column; gap: 4px; }
+        .timer { font-family: monospace; font-weight: bold; font-size: 13px; color: #555; }
+
+        .actions { display: flex; gap: 4px; }
+        .btn-sm { padding: 6px 8px; font-size: 11px; width: auto; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+
+        .schedule-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-color); margin-bottom: 8px; border-radius: 6px; }
     </style>
 </head>
 <body>
 
-<div id="login-screen">
-    <div class="login-card">
-        <h2>Team Login</h2>
-        <input type="password" id="pass-input" placeholder="Passwort...">
-        <button onclick="checkLogin()">Anmelden</button>
-    </div>
-</div>
+<div class="container">
+    <header>
+        <h1><i data-lucide="phone-call"></i> Support Pausen-Planer LIVE</h1>
+        <div class="sync-indicator"><i data-lucide="refresh-cw" id="sync-icon"></i> <span id="sync-text">Verbinden...</span></div>
+    </header>
 
-<div id="app-content">
-    <div class="card">
-        <h2>Mittagspause reservieren</h2>
-        <select id="sched-name"></select>
-        <input type="time" id="sched-time">
-        <button onclick="schedulePause()">Pause buchen</button>
-        <button onclick="location.reload()" style="background:#666; margin-top:10px;">Abmelden</button>
-    </div>
-    <div class="card">
-        <h2>Belegte Mittagspausen</h2>
-        <div id="schedule-list">Keine Pausen gebucht.</div>
+    <div class="grid">
+        <div>
+            <div class="card">
+                <h2><i data-lucide="users"></i> Live-Status des Teams</h2>
+                <div id="team-list">Lade Team-Daten...</div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <h2><i data-lucide="calendar"></i> Mittagspause reservieren (30 Min)</h2>
+                <div class="form-group">
+                    <label for="sched-name">Wer?</label>
+                    <select id="sched-name"></select>
+                </div>
+                <div class="form-group">
+                    <label for="sched-time">Gewünschte Startzeit</label>
+                    <input type="time" id="sched-time">
+                </div>
+                <button class="btn-primary" onclick="schedulePause()"><i data-lucide="clock"></i> Pause buchen</button>
+            </div>
+
+            <div class="card">
+                <h2><i data-lucide="list-ordered"></i> Geplante Mittagspausen für heute</h2>
+                <div id="schedule-list">Keine geplanten Pausen.</div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    const PASSWORD = "support2026";
+    // Cloud-Datenbank-URL
     const DB_URL = "https://kvdb.io/MN87w6yH6p8SgXbU7t6P8B/support_team_9921a";
-    const NAMES = ["Angelo", "Sabiha", "Diana", "Steven", "Jesse", "Armin", "Michael", "Radek", "Mounir", "Stavros", "Katharina", "Marcel (TL)", "Lukas (TL)"];
-    let appData = { schedules: [] };
 
-    function checkLogin() {
-        if (document.getElementById('pass-input').value === PASSWORD) {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app-content').style.display = 'block';
-            updateDropdowns(); // Namen jetzt hier laden
-            loadData();
-        } else {
-            alert("Falsches Passwort!");
-        }
-    }
+    // Feste Namensliste
+    const DEFAULT_NAMES = [
+        "Angelo", "Sabiha", "Diana", "Steven", "Jesse", 
+        "Armin", "Michael", "Radek", "Mounir", "Stavros", 
+        "Katharina", "Marcel (TL)", "Lukas (TL)"
+    ];
 
-    function updateDropdowns() {
-        const select = document.getElementById('sched-name');
-        select.innerHTML = NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
-    }
+    let appData = {
+        team: DEFAULT_NAMES.map((name, index) => ({
+            id: index + 1,
+            name: name,
+            status: "Verfügbar",
+            timeLeft: 0,
+            lastUpdate: Date.now()
+        })),
+        schedules: []
+    };
 
     async function loadData() {
-        const response = await fetch(DB_URL);
-        if (response.ok) {
-            appData = await response.json();
-            renderSchedule();
+        try {
+            document.getElementById('sync-icon').style.animation = "spin 1s linear infinite";
+            const response = await fetch(DB_URL);
+            if (response.ok) {
+                const cloudData = await response.json();
+                
+                // Falls in der Cloud Daten fehlen oder die Struktur alt ist, überschreiben wir sie mit dem neuen System
+                if (!cloudData.team || cloudData.team.length !== DEFAULT_NAMES.length) {
+                    await saveData();
+                } else {
+                    appData = cloudData;
+                    renderAll();
+                }
+                document.getElementById('sync-text').innerText = "Live synchronisiert";
+            } else if (response.status === 404) {
+                await saveData();
+            }
+        } catch (e) {
+            document.getElementById('sync-text').innerText = "Verbindungsfehler!";
+        } finally {
+            document.getElementById('sync-icon').style.animation = "none";
         }
     }
 
     async function saveData() {
-        await fetch(DB_URL, { method: 'POST', body: JSON.stringify(appData) });
-        renderSchedule();
+        try {
+            await fetch(DB_URL, {
+                method: 'POST',
+                body: JSON.stringify(appData)
+            });
+            renderAll();
+        } catch (e) {
+            console.error("Fehler beim Speichern", e);
+        }
     }
 
-    function schedulePause() {
-        const name = document.getElementById('sched-name').value;
-        const time = document.getElementById('sched-time').value;
-        if (!time) return alert("Uhrzeit wählen");
-        if (appData.schedules.some(s => s.time === time)) return alert("Uhrzeit bereits belegt!");
+    function renderAll() {
+        renderTeam();
+        renderSchedule();
+        updateDropdowns();
+    }
+
+    function renderTeam() {
+        const list = document.getElementById('team-list');
+        list.innerHTML = '';
         
-        appData.schedules.push({ id: Date.now(), name: name, time: time });
-        saveData();
+        appData.team.forEach(member => {
+            let statusClass = 'status-av';
+            if(member.status === 'Mittagspause') statusClass = 'status-mid';
+            if(member.status === 'Bildschirmpause') statusClass = 'status-scr';
+
+            let timerDisplay = '';
+            if (member.status !== 'Verfügbar') {
+                const passedSeconds = Math.floor((Date.now() - member.lastUpdate) / 1000);
+                let currentTimerValue = 0;
+                
+                if (member.status === 'Mittagspause') {
+                    currentTimerValue = Math.max(-120 * 60, member.timeLeft - passedSeconds);
+                } else {
+                    currentTimerValue = member.timeLeft + passedSeconds;
+                }
+
+                const mins = Math.floor(Math.abs(currentTimerValue) / 60);
+                const secs = Math.abs(currentTimerValue) % 60;
+                const sign = currentTimerValue < 0 ? "-" : "";
+                timerDisplay = `<span class="timer">${sign}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}</span>`;
+            }
+
+            list.innerHTML += `
+                <div class="team-member">
+                    <div class="member-info">
+                        <strong>${member.name}</strong>
+                        <div>
+                            <span class="status-badge ${statusClass}">${member.status}</span>
+                            ${timerDisplay}
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-sm btn-success" onclick="changeStatus(${member.id}, 'Verfügbar')">Bereit</button>
+                        <button class="btn-sm btn-warning" onclick="changeStatus(${member.id}, 'Mittagspause')">Mittag</button>
+                        <button class="btn-sm btn-danger" onclick="changeStatus(${member.id}, 'Bildschirmpause')">Bildschirm</button>
+                    </div>
+                </div>
+            `;
+        });
+        lucide.createIcons();
     }
 
     function renderSchedule() {
         const list = document.getElementById('schedule-list');
-        list.innerHTML = appData.schedules.length === 0 ? "Keine Pausen gebucht." : "";
+        if(!appData.schedules || appData.schedules.length === 0) {
+            list.innerHTML = 'Keine geplanten Pausen.';
+            return;
+        }
+
+        list.innerHTML = '';
         appData.schedules.sort((a,b) => a.time.localeCompare(b.time));
+
         appData.schedules.forEach(s => {
-            list.innerHTML += `<div class="schedule-item"><span><strong>${s.time}</strong> - ${s.name}</span>
-                               <button onclick="deleteSchedule(${s.id})" style="background:none; color:red; border:none;">Löschen</button></div>`;
+            list.innerHTML += `
+                <div class="schedule-item" style="border-left: 4px solid var(--warning)">
+                    <span><strong>${s.time} - ${add30Mins(s.time)} Uhr</strong> (${s.name})</span>
+                    <button class="btn-sm" style="background:none; color:red;" onclick="deleteSchedule(${s.id})">×</button>
+                </div>
+            `;
         });
+        lucide.createIcons();
+    }
+
+    function updateDropdowns() {
+        const select = document.getElementById('sched-name');
+        if(!select) return;
+        select.innerHTML = DEFAULT_NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
+    }
+
+    function changeStatus(id, newStatus) {
+        const member = appData.team.find(m => m.id === id);
+        if (!member) return;
+
+        member.status = newStatus;
+        member.lastUpdate = Date.now();
+        
+        if (newStatus === 'Mittagspause') {
+            member.timeLeft = 30 * 60; 
+        } else {
+            member.timeLeft = 0;
+        }
+        saveData();
+    }
+
+    // Zeit-Überlappung für 30 Minuten Mittagspause prüfen
+    function schedulePause() {
+        const name = document.getElementById('sched-name').value;
+        const time = document.getElementById('sched-time').value;
+        if (!time) return alert("Bitte eine Uhrzeit wählen!");
+
+        // Eingabe in Minuten seit Mitternacht umrechnen
+        const [newHrs, newMins] = time.split(':').map(Number);
+        const newStart = newHrs * 60 + newMins;
+        const newEnd = newStart + 30;
+
+        if(!appData.schedules) appData.schedules = [];
+
+        // Prüfen, ob sich das neue Zeitfenster mit einer bestehenden Buchung überschneidet
+        let conflict = false;
+        let conflictName = "";
+        let conflictTime = "";
+
+        appData.schedules.forEach(s => {
+            const [exHrs, exMins] = s.time.split(':').map(Number);
+            const exStart = exHrs * 60 + exMins;
+            const exEnd = exStart + 30;
+
+            // Überschneidungs-Formel
+            if (newStart < exEnd && newEnd > exStart) {
+                conflict = true;
+                conflictName = s.name;
+                conflictTime = s.time;
+            }
+        });
+
+        if (conflict) {
+            alert(`⚠️ Buchung nicht möglich! ${conflictName} hat in diesem Zeitraum bereits Pause gebucht (${conflictTime} - ${add30Mins(conflictTime)} Uhr).`);
+            return;
+        }
+
+        appData.schedules.push({ id: Date.now(), name: name, time: time });
+        saveData();
     }
 
     function deleteSchedule(id) {
         appData.schedules = appData.schedules.filter(s => s.id !== id);
         saveData();
     }
+
+    function add30Mins(timeStr) {
+        let [hrs, mins] = timeStr.split(':').map(Number);
+        mins += 30;
+        if (mins >= 60) { mins -= 60; hrs = (hrs + 1) % 24; }
+        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    }
+
+    const style = document.createElement('style');
+    style.innerHTML = '@keyframes spin { 100% { transform:rotate(360deg); } }';
+    document.head.appendChild(style);
+
+    window.onload = () => {
+        loadData();
+        setInterval(loadData, 5000); // Alle 5s mit der Cloud synchronisieren
+        setInterval(renderTeam, 1000); // Live-Timer flüssig halten
+    };
 </script>
 </body>
 </html>
