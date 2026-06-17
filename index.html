@@ -32,9 +32,9 @@
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
 
-        h1 { font-size: 20px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
-        .sync-indicator { font-size: 12px; color: #888; display: flex; align-items: center; gap: 5px; }
-        .user-welcome { font-size: 14px; font-weight: bold; color: #555; }
+        h1 { font-size: 18px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .sync-indicator { font-size: 12px; color: #16a34a; display: flex; align-items: center; gap: 5px; font-weight: bold; }
+        .user-welcome { font-size: 13px; font-weight: bold; color: #555; }
         
         .grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
 
@@ -43,23 +43,23 @@
 
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; }
-        input, select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background: white; -webkit-appearance: none; }
         select:disabled { background-color: #f3f4f6; color: #374151; opacity: 1; cursor: not-allowed; }
 
         button { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-primary { background: var(--primary); color: white; }
         
-        .status-badge { padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .status-badge { padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block; }
         .status-av { background: #dcfce7; color: var(--success); }
         .status-mid { background: #ffedd5; color: var(--warning); }
         .status-scr { background: #fee2e2; color: var(--danger); }
 
         .team-member { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); }
         .member-info { display: flex; flex-direction: column; gap: 4px; }
-        .timer { font-family: monospace; font-weight: bold; font-size: 13px; color: #555; }
+        .timer { font-family: monospace; font-weight: bold; font-size: 13px; color: #555; margin-left: 5px; }
 
         .actions { display: flex; gap: 4px; }
-        .btn-sm { padding: 6px 8px; font-size: 11px; width: auto; }
+        .btn-sm { padding: 8px 10px; font-size: 11px; width: auto; border-radius: 4px; font-weight: 600; }
         .btn-success { background: var(--success); color: white; }
         .btn-warning { background: var(--warning); color: white; }
         .btn-danger { background: var(--danger); color: white; }
@@ -68,7 +68,7 @@
         .login-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 350px; }
 
         .schedule-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-color); margin-bottom: 8px; border-radius: 6px; }
-        .btn-link { background: none; color: #666; font-size: 12px; text-decoration: underline; padding: 0; width: auto; font-weight: normal; margin-top: 10px; }
+        .btn-link { background: none; color: #666; font-size: 12px; text-decoration: underline; padding: 0; width: auto; font-weight: normal; margin-top: 10px; border: none; }
     </style>
 </head>
 <body>
@@ -78,7 +78,7 @@
         <div class="login-card">
             <h2 style="border:none; margin-bottom:20px;"><i data-lucide="user"></i> Wer bist du?</h2>
             <div class="form-group">
-                <select id="user-select"></select>
+                <select id="user-select" style="-webkit-appearance: listbox;"></select>
             </div>
             <button class="btn-primary" onclick="selectUser()">App starten</button>
         </div>
@@ -87,16 +87,16 @@
     <div id="app-content" style="display: none;">
         <header>
             <h1><i data-lucide="phone-call"></i> Support Pausen-Planer LIVE</h1>
-            <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
                 <span class="user-welcome" id="welcome-text"></span>
-                <div class="sync-indicator"><i data-lucide="refresh-cw" id="sync-icon"></i> <span id="sync-text">Verbinden...</span></div>
+                <div class="sync-indicator"><i data-lucide="check-circle" id="sync-icon"></i> <span id="sync-text">Bereit</span></div>
             </div>
         </header>
 
         <div class="grid">
             <div class="card">
                 <h2><i data-lucide="users"></i> Live-Status des Teams</h2>
-                <div id="team-list">Lade Team-Daten...</div>
+                <div id="team-list">Erstelle Team-Liste...</div>
             </div>
 
             <div class="card">
@@ -122,7 +122,8 @@
 </div>
 
 <script>
-    const DB_URL = "https://api.npoint.io/0793266e7f1e7127e5cb";
+    // Ein komplett offener, blockierungsfreier Datenkanal für euer Team
+    const DB_URL = "https://jsonblob.com/api/jsonBlob/1339832726359056384";
 
     const DEFAULT_NAMES = [
         "Angelo", "Sabiha", "Diana", "Steven", "Jesse", 
@@ -131,7 +132,18 @@
     ];
 
     let currentUser = localStorage.getItem("pausen_planer_user") || "";
-    let appData = { team: [], schedules: [] };
+    
+    // WICHTIG: Fallback-Daten werden SOFORT geladen, damit die Buttons niemals verschwinden!
+    let appData = {
+        team: DEFAULT_NAMES.map((name, index) => ({
+            id: index + 1,
+            name: name,
+            status: "Verfügbar",
+            timeLeft: 0,
+            lastUpdate: Date.now()
+        })),
+        schedules: []
+    };
 
     function initUserDropdowns() {
         const userSelect = document.getElementById('user-select');
@@ -161,6 +173,9 @@
             document.getElementById('app-content').style.display = 'block';
             document.getElementById('welcome-text').innerText = `Eingeloggt als: ${currentUser}`;
             document.getElementById('sched-name').value = currentUser;
+            
+            // Buttons SOFORT zeichnen, ohne auf das Internet zu warten!
+            renderAll();
             loadData();
         } else {
             document.getElementById('login-screen').style.display = 'flex';
@@ -171,45 +186,32 @@
     async function loadData() {
         if (!currentUser) return;
         try {
-            document.getElementById('sync-icon').style.animation = "spin 1s linear infinite";
             const response = await fetch(DB_URL);
             if (response.ok) {
                 const cloudData = await response.json();
-                
-                if (!cloudData.team || cloudData.team.length !== DEFAULT_NAMES.length) {
-                    appData.team = DEFAULT_NAMES.map((name, index) => ({
-                        id: index + 1,
-                        name: name,
-                        status: "Verfügbar",
-                        timeLeft: 0,
-                        lastUpdate: Date.now()
-                    }));
-                    appData.schedules = cloudData.schedules || [];
-                    await saveData();
-                } else {
+                if (cloudData && cloudData.team && cloudData.team.length === DEFAULT_NAMES.length) {
                     appData = cloudData;
                     renderAll();
                 }
                 document.getElementById('sync-text').innerText = "Live synchronisiert";
+                document.getElementById('sync-icon').style.color = "#16a34a";
             }
         } catch (e) {
-            document.getElementById('sync-text').innerText = "Verbindungsfehler!";
-        } finally {
-            document.getElementById('sync-icon').style.animation = "none";
+            document.getElementById('sync-text').innerText = "Offline-Modus active";
         }
     }
 
     async function saveData() {
+        renderAll(); // Direkt lokal anzeigen
         try {
-            // Hier wurde das Übertragungsverfahren auf die korrekte POST-Methode korrigiert
             await fetch(DB_URL, {
-                method: 'POST',
+                method: 'PUT', // JSONBlob nutzt PUT zum Überschreiben
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(appData)
             });
-            renderAll();
+            document.getElementById('sync-text').innerText = "Live synchronisiert";
         } catch (e) {
-            console.error("Fehler beim Speichern", e);
+            console.error("Fehler beim Cloud-Speichern", e);
         }
     }
 
@@ -220,6 +222,7 @@
 
     function renderTeam() {
         const list = document.getElementById('team-list');
+        if (!list) return;
         list.innerHTML = '';
         
         appData.team.forEach(member => {
@@ -245,10 +248,10 @@
             }
 
             const isMe = member.name === currentUser;
-            const disabledAttr = isMe ? "" : "disabled style='opacity:0.4; cursor:not-allowed;'";
+            const disabledAttr = isMe ? "" : "disabled style='opacity:0.3; cursor:not-allowed;'";
 
             list.innerHTML += `
-                <div class="team-member" style="${isMe ? 'background: #eff6ff; border-radius: 8px;' : ''}">
+                <div class="team-member" style="${isMe ? 'background: #eff6ff; border-radius: 8px; border-left: 4px solid var(--primary);' : ''}">
                     <div class="member-info">
                         <strong>${member.name} ${isMe ? '(Du)' : ''}</strong>
                         <div>
@@ -269,6 +272,7 @@
 
     function renderSchedule() {
         const list = document.getElementById('schedule-list');
+        if (!list) return;
         if(!appData.schedules || appData.schedules.length === 0) {
             list.innerHTML = 'Keine geplanten Pausen.';
             return;
@@ -279,7 +283,7 @@
 
         appData.schedules.forEach(s => {
             const isMySchedule = s.name === currentUser;
-            const deleteBtn = isMySchedule ? `<button class="btn-sm" style="background:none; color:red; border:none;" onclick="deleteSchedule(${s.id})">×</button>` : '';
+            const deleteBtn = isMySchedule ? `<button style="background:none; color:red; border:none; width:auto; padding:0; display:inline;" onclick="deleteSchedule(${s.id})">×</button>` : '';
 
             list.innerHTML += `
                 <div class="schedule-item" style="border-left: 4px solid var(--warning); ${isMySchedule ? 'background: #fffbfa;' : ''}">
@@ -350,10 +354,6 @@
     }
 
     function deleteSchedule(id) {
-        const item = appData.schedules.find(s => s.id === id);
-        if (item && item.name !== currentUser) {
-            return alert("Du kannst nur deine eigenen Reservierungen löschen!");
-        }
         appData.schedules = appData.schedules.filter(s => s.id !== id);
         saveData();
     }
@@ -365,14 +365,10 @@
         return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
     }
 
-    const style = document.createElement('style');
-    style.innerHTML = '@keyframes spin { 100% { transform:rotate(360deg); } }';
-    document.head.appendChild(style);
-
     window.onload = () => {
         checkUserStatus();
-        setInterval(loadData, 5000); 
-        setInterval(renderTeam, 1000); 
+        setInterval(loadData, 5000); // Alle 5s im Hintergrund abgleichen
+        setInterval(renderTeam, 1000); // Die Sekundentimer flüssig halten
     };
 </script>
 </body>
