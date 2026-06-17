@@ -122,7 +122,6 @@
 </div>
 
 <script>
-    // Neue, stabile Echtzeit-Datenbank-URL speziell für euer Team
     const DB_URL = "https://api.npoint.io/0793266e7f1e7127e5cb";
 
     const DEFAULT_NAMES = [
@@ -177,7 +176,6 @@
             if (response.ok) {
                 const cloudData = await response.json();
                 
-                // Falls Cloud-Daten leer oder unvollständig sind, initialisieren
                 if (!cloudData.team || cloudData.team.length !== DEFAULT_NAMES.length) {
                     appData.team = DEFAULT_NAMES.map((name, index) => ({
                         id: index + 1,
@@ -203,8 +201,9 @@
 
     async function saveData() {
         try {
+            // Hier wurde das Übertragungsverfahren auf die korrekte POST-Methode korrigiert
             await fetch(DB_URL, {
-                method: 'JSON',
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(appData)
             });
