@@ -3,20 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pausen-Planer Login</title>
+    <title>Pausen-Planer</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { --primary: #2563eb; --success: #16a34a; --warning: #ea580c; --danger: #dc2626; --border: #e5e7eb; --bg: #f4f6f9; }
+        :root { --primary: #2563eb; --success: #16a34a; --warning: #ea580c; --danger: #dc2626; --bg: #f4f6f9; }
         body { font-family: sans-serif; background: var(--bg); margin: 0; }
-        #login-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
+        #login-screen { display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
         .login-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 300px; }
         input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        
         #app-content { display: none; padding: 20px; max-width: 800px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .schedule-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8fafc; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid var(--warning); }
-        .error-msg { color: var(--danger); font-size: 12px; font-weight: bold; margin-bottom: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -26,44 +24,43 @@
         <h2>Team Login</h2>
         <input type="password" id="pass-input" placeholder="Passwort...">
         <button onclick="checkLogin()">Anmelden</button>
-        <p id="error" style="color:red; font-size: 12px; margin-top:10px;"></p>
     </div>
 </div>
 
 <div id="app-content">
     <div class="card">
-        <h2><i data-lucide="calendar"></i> Mittagspause reservieren</h2>
-        <div id="error-box" class="error-msg"></div>
+        <h2>Mittagspause reservieren</h2>
         <select id="sched-name"></select>
         <input type="time" id="sched-time">
         <button onclick="schedulePause()">Pause buchen</button>
         <button onclick="location.reload()" style="background:#666; margin-top:10px;">Abmelden</button>
     </div>
-
     <div class="card">
-        <h2><i data-lucide="list-ordered"></i> Belegte Mittagspausen</h2>
-        <div id="schedule-list">Lade Daten...</div>
+        <h2>Belegte Mittagspausen</h2>
+        <div id="schedule-list">Keine Pausen gebucht.</div>
     </div>
 </div>
 
 <script>
-    // --- KONFIGURATION ---
-    const PASSWORD = "support2026"; // HIER PASSWORT ÄNDERN
+    const PASSWORD = "support2026";
     const DB_URL = "https://kvdb.io/MN87w6yH6p8SgXbU7t6P8B/support_team_9921a";
     const NAMES = ["Angelo", "Sabiha", "Diana", "Steven", "Jesse", "Armin", "Michael", "Radek", "Mounir", "Stavros", "Katharina", "Marcel (TL)", "Lukas (TL)"];
-    
     let appData = { schedules: [] };
 
-    // Login Logik
     function checkLogin() {
-        const input = document.getElementById('pass-input').value;
-        if (input === PASSWORD) {
+        if (document.getElementById('pass-input').value === PASSWORD) {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-content').style.display = 'block';
+            updateDropdowns(); // Namen jetzt hier laden
             loadData();
         } else {
-            document.getElementById('error').innerText = "Falsches Passwort!";
+            alert("Falsches Passwort!");
         }
+    }
+
+    function updateDropdowns() {
+        const select = document.getElementById('sched-name');
+        select.innerHTML = NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
     }
 
     async function loadData() {
@@ -71,7 +68,6 @@
         if (response.ok) {
             appData = await response.json();
             renderSchedule();
-            updateDropdowns();
         }
     }
 
@@ -83,39 +79,21 @@
     function schedulePause() {
         const name = document.getElementById('sched-name').value;
         const time = document.getElementById('sched-time').value;
-        const errorBox = document.getElementById('error-box');
-
-        if (!time) return alert("Bitte Uhrzeit wählen");
-        if (appData.schedules.some(s => s.time === time)) {
-            errorBox.style.display = 'block';
-            errorBox.innerText = `⚠️ ${time} Uhr ist bereits belegt!`;
-            return;
-        }
-
-        errorBox.style.display = 'none';
+        if (!time) return alert("Uhrzeit wählen");
+        if (appData.schedules.some(s => s.time === time)) return alert("Uhrzeit bereits belegt!");
+        
         appData.schedules.push({ id: Date.now(), name: name, time: time });
         saveData();
     }
 
     function renderSchedule() {
         const list = document.getElementById('schedule-list');
-        list.innerHTML = '';
+        list.innerHTML = appData.schedules.length === 0 ? "Keine Pausen gebucht." : "";
         appData.schedules.sort((a,b) => a.time.localeCompare(b.time));
-        
         appData.schedules.forEach(s => {
-            list.innerHTML += `
-                <div class="schedule-item">
-                    <span><strong>${s.time}</strong> - ${s.name}</span>
-                    <button onclick="deleteSchedule(${s.id})" style="background:none; color:red; width:auto; border:none;">Löschen</button>
-                </div>
-            `;
+            list.innerHTML += `<div class="schedule-item"><span><strong>${s.time}</strong> - ${s.name}</span>
+                               <button onclick="deleteSchedule(${s.id})" style="background:none; color:red; border:none;">Löschen</button></div>`;
         });
-        lucide.createIcons();
-    }
-
-    function updateDropdowns() {
-        const select = document.getElementById('sched-name');
-        select.innerHTML = NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
     }
 
     function deleteSchedule(id) {
